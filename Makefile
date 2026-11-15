@@ -28,7 +28,7 @@ $(DSK)/boot.img:
 reset: kill-vnc clean mkdirs crtdsk
 
 # Compiling
-compile: $(BIN)/mbr.a.bin
+compile: $(BIN)/mbr.a.bin $(BIN)/lm.a.bin
 
 $(BIN)/%.a.bin: $(SRC)/%.asm
 	nasm $(NASMFLAGS) -f bin $< -o $@
@@ -38,6 +38,7 @@ write: wrdsk-boot
 
 wrdsk-boot: $(DSK)/boot.img
 	dd if=$(BIN)/mbr.a.bin of=$< bs=512 count=1 conv=notrunc
+	dd if=$(BIN)/lm.a.bin  of=$< bs=512 count=1 conv=notrunc seek=1
 
 # Running
 run:
