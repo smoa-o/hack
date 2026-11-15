@@ -91,6 +91,9 @@ pm:
 	mov esi, Opm
 	call p_sputs
 
+	mov eax, p_sputs
+	jmp 0x7e00
+
 	cli
 	hlt
 	jmp $
