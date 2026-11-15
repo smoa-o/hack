@@ -104,6 +104,7 @@ bits 16
 	mov si, Rm
 	call sputs
 
+	inc cl
 	add bx, 0x7e00
 	int 13h
 	jc .error
@@ -112,6 +113,7 @@ bits 16
 
 	mov esi, p_sputs
 	mov edi, p_sputc
+	mov ebx, Pm
 
 	mov eax, cr0
 	or eax, 1
@@ -192,19 +194,21 @@ p_sputs:
 .done:
 	ret
 
+bits 32
+
 p_sputc:
-	push rdx
-	push rax
+	push edx
+	push eax
 .wait_:
 	mov dx, 3fdh
 	in al, dx
 	test al, 20h
 	jz .wait_
 
-	pop rax
+	pop eax
 	sub dx, 5 ;0
 	out dx, al
-	pop rdx
+	pop edx
 	ret
 
 bits 16
@@ -243,6 +247,7 @@ Urm db "On Unreal Mode", 0xd, 0xa, 0
 Rde db "Read Error", 0xd, 0xa, 0
 Rds db "Read Success", 0xd, 0xa, 0
 Rm  db "On Real Mode", 0xd, 0xa, 0
+%if 0
 Pc  db "Pagetable Cleaned", 0xd, 0xa, 0
 Ppml4 db "PML4 Loaded", 0xd, 0xa, 0
 Ppdpt db "PDPT Loaded", 0xd, 0xa, 0
@@ -251,6 +256,7 @@ C3L db "CR3 Loaded", 0xd, 0xa, 0
 Pae db "PAE Seted", 0xd, 0xa, 0
 Lme db "LME Seted", 0xd, 0xa, 0
 PgL db "PG Seted", 0xd, 0xa, 0
+%endif
 
 BootDrive db 0
 
