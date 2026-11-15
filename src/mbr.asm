@@ -31,21 +31,59 @@ mbr:
 	mov si, Msg
 	call sputs
 
+	lgdt [GdtDesc]
+
+	mov si, GdtL
+	call sputs
+
+	in al, 92h
+	or al, 2
+	out 92h, al
+
+	mov si, A20
+	call sputs
+
+	mov eax, cr0
+	or eax, 1
+	mov cr0, eax
+
+	jmp 0x8:pm
+
+	mov si, Bfj ; Bad Far Jump
+	call sputs
+
 	cli
 	hlt
 	jmp $
 
-sputs:
-	lodsb
+bits 32
+pm:
+	mov ax, 10h
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+	mov ss, ax
+	mov esp, 0x90000
+
+	mov esi, Pm
+	call p_sputs
+
+	cli
+	hlt
+	jmp $
+
+p_sputs:
+	mov al, [ds:esi]
+	inc esi
 	or al, al
 	jz .done
-	call putc
-	jmp sputs
+	call p_sputc
+	jmp p_sputs
 .done:
 	ret
 
-; base=3f8
-putc:
+p_sputc:
 	push dx
 	push ax
 .wait_:
@@ -60,6 +98,46 @@ putc:
 	pop dx
 	ret
 
-Msg db "On MBR", 0xd, 0xa, 0
+bits 16
+
+sputs:
+	lodsb
+	or al, al
+	jz .done
+	call sputc
+	jmp sputs
+.done:
+	ret
+
+; base=3f8
+sputc:
+	push dx
+	push ax
+.wait_:
+	mov dx, 3fdh
+	in al, dx
+	test al, 20h
+	jz .wait_
+
+	pop ax
+	sub dx, 5 ;0
+	out dx, al
+	pop dx
+	ret
+
+Msg db "On Real Mode", 0xd, 0xa, 0
+Bfj db "Bad Far Jump", 0xd, 0xa, 0
+Pm  db "On Protect Mode", 0xd, 0xa, 0
+GdtL db "Gdt Loaded", 0xd, 0xa, 0
+A20 db "A20 Seted", 0xd, 0xa, 0
+
+Gdt:
+	dq 0
+	dq 0x00CF9A000000FFFF
+	dq 0x00CF92000000FFFF
+GdtDesc:
+	dw GdtDesc - Gdt - 1
+	dd Gdt
+
 times 510-($-$$) db 0
 dw 0xaa55
