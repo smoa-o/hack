@@ -17,4 +17,8 @@ jobs:
         run: |
           git remote add gitee https://${{ secrets.GITEE_TOKEN }}@gitee.com/smoa-new/hack.git
           git pull gitee master
+          git pull gitee develop
+          git pull gitee --tags
           git push origin master
+          git push origin develop
+          git push origin --tags
