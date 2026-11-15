@@ -2,6 +2,21 @@ bits 16
 org 7c00h
 mbr:
 	cli
+
+	xor ax, ax
+	mov ds, ax
+	mov es, ax
+	mov fs, ax
+	mov gs, ax
+
+	mov ah, 2
+	mov al, 1 ; Count
+	mov bx, 0x7e00
+	xor ch, ch
+	mov cl, 2 ; Start Sector
+	xor dh, dh
+	int 13h
+	jc .error
 	
 	; Init UART, base=3f8
 	mov dx, 3f9h
@@ -28,7 +43,7 @@ mbr:
 	mov al, 0xc7
 	out dx, al
 
-	mov si, Msg
+	mov si, Orm
 	call sputs
 
 	lgdt [GdtDesc]
@@ -56,6 +71,13 @@ mbr:
 	hlt
 	jmp $
 
+.error:
+	mov si, ATE
+	call sputs
+	cli
+	hlt
+	jmp $
+
 bits 32
 pm:
 	mov ax, 10h
@@ -66,7 +88,7 @@ pm:
 	mov ss, ax
 	mov esp, 0x90000
 
-	mov esi, Pm
+	mov esi, Opm
 	call p_sputs
 
 	cli
@@ -125,11 +147,12 @@ sputc:
 	pop dx
 	ret
 
-Msg db "On Real Mode", 0xd, 0xa, 0
-Bfj db "Bad Far Jump", 0xd, 0xa, 0
-Pm  db "On Protect Mode", 0xd, 0xa, 0
-GdtL db "Gdt Loaded", 0xd, 0xa, 0
-A20 db "A20 Seted", 0xd, 0xa, 0
+Orm db "s:Orm", 0xd, 0xa, 0 ; On Realmode
+Bfj db "s:Bfj", 0xd, 0xa, 0 ; Bad Far Jump
+Opm  db "s:Opm", 0xd, 0xa, 0 ; on Protected Mode
+GdtL db "s:GdtL", 0xd, 0xa, 0 ; GDT Loaded
+A20 db "s:A20", 0xd, 0xa, 0 ; A20 Seted
+ATE db "s:ATE", 0xd, 0xa, 0 ; ATA Error
 
 Gdt:
 	dq 0
