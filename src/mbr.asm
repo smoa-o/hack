@@ -56,6 +56,10 @@ start:
 	out 0x61, al
 	mov [0x600], 0xff
 
+	cli
+	hlt
+	jmp $
+
 	.comOkay: ; tag
 	
 	add dx, 4 ;+4
