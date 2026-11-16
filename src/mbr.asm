@@ -73,8 +73,90 @@ start:
 	call dputs
 
 	cli
+	mov al, 0x80
+	out 0x70, al
+	.a20Wait:
+		in al, 0x64
+		test al, 2
+		jnz .a20Wait
+	mov al, 0xad
+	out 0x64, al
+	mov si, IDis
+	call dputs
+
+	lgdt [GdtDesc]
+	mov si, GdtL
+	call dputs
+
+	mov eax, cr0
+	or al, 1
+	mov cr0, eax
+
+	jmp 8:pm
+
+bits 32
+pm:
+	mov esi, Opm
+	call dputs
+
+	.enableA20:
+		call .a20WaitIE
+		mov al, 0xd0
+		out 0x64, al
+
+		call .a20WaitOF
+		in al, 0x60
+		push eax
+
+		call .a20WaitIE
+		mov al, 0xd1
+		out 0x64, al
+
+		call .a20WaitIE
+		pop eax
+		or al, 2
+		out 0x60, al ; Activate A20
+
+		call .a20WaitIE
+		mov al, 0xae
+		out 0x64, al ; Reactivate
+
+		sti
+		mov esi, A20S
+		call pdupts
+
+	.enableNMI:
+		in al, 0x70
+		and al, 0x7f
+		out 0x70, al
+
+	cli
 	hlt
 	jmp $
+
+; functions
+	.a20WaitIE: ; Input Empty
+		in al, 0x64
+		test al, 2
+		jnz .a20WaitIE
+		ret
+	.a20WaitOF: ; Output Full
+		in al, 0x64
+		test al, 1
+		jz .a20WaitOF
+		ret
+
+pdupts:
+	push esi
+	mov esi, Dbg
+	call puts
+	pop esi
+	call puts
+	mov esi, Line
+	call puts
+	ret
+
+bits 16
 
 dputs:
 	push si
@@ -114,6 +196,18 @@ Dbg  db "s:", 0
 Line db 0xd, 0xa, 0
 
 Init db "Init", 0
+IDis db "IDis", 0 ; Interrupting Disabled
+GdtL db "GdtL", 0 ; GDT Loaded
+A20S db "A20S", 0 ; A20 Seted
+Opm  db "Opm",  0 ; On Protected Mode
+
+Gdt:
+	dq 0
+	dq 0x00CF9A000000FFFF ; 32-bit ring0 code
+	dq 0x00CF92000000FFFF ; 32-bit Ring0 data
+GdtDesc:
+	dw GdtDesc - Gdt - 1
+	dd Gdt
 
 times 510 - ($-$$) db 0
 dw 0xaa55
