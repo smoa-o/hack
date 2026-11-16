@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [ $# -lt 1 ]; then
+    echo "Usage: ./maker <arch> <make-targets...>"
+    echo "Example: ./maker riscv run"
+    echo "Example: ./maker x86 clean"
+    exit 1
+fi
+
+ARCH="$1"
+shift
+
+MAKEFILE="${SCRIPT_DIR}/make/${ARCH}.mk"
+
+if [ ! -f "$MAKEFILE" ]; then
+    echo "Error: make/${ARCH}.mk not found"
+    exit 1
+fi
+
+make -f "$MAKEFILE" "$@"

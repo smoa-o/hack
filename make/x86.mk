@@ -1,6 +1,7 @@
-SRC ?= src
-BIN ?= bin
-DSK ?= dsk
+ARCH ?= arch
+SRC ?= $(ARCH)/x86
+BIN ?= $(ARCH)/bin
+DSK ?= $(ARCH)/dsk
 AUTOGEN ?= $(BIN) $(DSK)
 
 NASMFLAGS ?=
