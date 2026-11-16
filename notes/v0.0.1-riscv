@@ -1,0 +1,12 @@
+HackOS v0.0.1-riscv
+Date: Nov 16, 2026
+
+===================
+
+This is the first version of HackOS on RISC-V!
+
+Added:
+	support UART to debug.
+
+That's enough for these things.
+How many more things do you want me to add to the first version?
