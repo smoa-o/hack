@@ -3,8 +3,8 @@ bits 32
 
 %include "mc/put.asm"
 %define pdputs [_Pdputs]
-%define Dbg [_Dbg]
-%define Line [_Line]
+;%define Dbg [_Dbg]
+;%define Line [_Line]
 
 COM equ 0x3f8	; COM1
 
@@ -137,10 +137,48 @@ bits 64
 lm:
 	mov ax, 0x20
 	mov ds, ax
+
+	mov rsi, Olm
+	call qdputs
 	
 	cli
 	hlt
 	jmp $
+
+qdputs:
+	push rsi
+	mov rsi, Dbg
+	call qputs
+	pop rsi
+	call qputs
+	mov rsi, Line
+	call qputs
+
+qputs:
+	lodsb
+	or al, al
+	jz .done
+	call qputc
+	jmp qputs
+.done:
+	ret
+
+qputc:
+	push rdx
+	push rax
+.wait_:
+	mov dx, COM+5
+	in al, dx
+	test al, 0x20
+	jz .wait_
+	mov dx, COM
+	pop rax
+	out dx, al
+	pop rdx
+	ret
+
+Dbg		db "s:", 0
+Line	db 0xd, 0xa, 0
 
 OLdr db "OLdr", 0 ; On Loader
 CpdF db "CpdF", 0 ; CPUID Failures
