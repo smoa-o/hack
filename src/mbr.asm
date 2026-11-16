@@ -120,10 +120,24 @@ start:
 		mov al, 0xae
 		out 0x64, al
 
-	sti
-	
-	mov si, A20S
-	call dputs
+	; A20 Loopback Test
+	.a20LoopbackTest:
+		mov ax, 0xFFFF
+		mov fs, ax
+		mov byte [0], 0x55
+		mov byte [fs:0x10], 0xaa
+		cmp byte [0], 0x55
+		jz .a20Success
+		.a20Failured:
+			mov si, A20F
+			call dputs
+			cli
+			hlt
+			jmp $
+
+	.a20Success:
+		mov si, A20S
+		call dputs
 	
 	lgdt [GdtDesc]
 	mov si, GdtL
@@ -215,11 +229,12 @@ PUT pdputs, pputs, esi, pputc
 Dbg		db "s:", 0
 Line	db 0xd, 0xa, 0
 
-Init	db "Init", 0
-IDis	db "IDis", 0
-GdtL	db "GdtL", 0
-A20S	db "A20S", 0
-Opm		db "Opm", 0
+Init	db "Init", 0 ; Init
+IDis	db "IDis", 0 ; Interrupt Disabled
+GdtL	db "GdtL", 0 ; GDT Loaded
+A20S	db "A20S", 0 ; A20 Seted
+Opm		db "Opm",  0 ; On Protected Mode
+A20F    db "A20F", 0 ; A20 Failured
 
 Gdt:
 	dq 0
@@ -228,8 +243,6 @@ Gdt:
 GdtDesc:
 	dw GdtDesc - Gdt - 1
 	dd Gdt
-
-%warning %($ - $$%)
 
 times 510 - ($-$$) db 0
 dw 0xaa55
