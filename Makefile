@@ -3,9 +3,10 @@ BIN ?= bin
 DSK ?= dsk
 AUTOGEN ?= $(BIN) $(DSK)
 
-NASMFLAGS ?= -w+all
+NASMFLAGS ?=
+DEFNASMFLAGS ?= -w+all -w-error=label-redef-late
 QEMUFLAGS ?=
-DEFQEMUFLAGS ?= -boot a -D qemu.log \
+DEFQEMUFLAGS ?= -boot a -D qemu.log -d int,cpu_reset,guest_errors,mmu \
 	-drive file=dsk/boot.img,format=raw,if=floppy,index=0
 
 all: ready run
@@ -33,16 +34,17 @@ $(DSK)/boot.img:
 reset: kill-vnc clean mkdirs crtdsk
 
 # Compiling
-compile: $(BIN)/mbr.a.bin
+compile: $(BIN)/mbr.a.bin $(BIN)/ldr.a.bin
 
 $(BIN)/%.a.bin: $(SRC)/%.asm
-	nasm $(NASMFLAGS) -f bin $< -o $@ -l lst/$(notdir $<).lst
+	nasm $(NASMFLAGS) $(DEFNASMFLAGS) -f bin $< -o $@ -l lst/$(notdir $<).lst
 
 # Writing
 write: wrdsk-boot
 
 wrdsk-boot: $(DSK)/boot.img
 	dd if=$(BIN)/mbr.a.bin of=$< bs=512 count=1 conv=notrunc
+	dd if=$(BIN)/ldr.a.bin of=$< bs=512 count=1 conv=notrunc seek=1
 
 # Running
 run:

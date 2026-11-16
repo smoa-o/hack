@@ -1,11 +1,16 @@
 bits 16
 org 0x7c00
 
+%include "mc/put.asm"
+
 COM equ 0x3f8	; COM1
 
 start:
 	xor ax, ax
 	mov ds, ax
+	mov es, ax
+
+	mov [BootDrive], dl
 
 	; Init COM1
 	mov dx, 0x3f9
@@ -85,6 +90,31 @@ start:
 	
 	mov si, Init
 	call dputs
+
+	sti
+	
+	; Read 'Loader'
+	.readLoader:
+		mov ah, 2
+		mov al, 1 ; Count
+		mov bx, 0x7e00 ; Base
+		xor ch, ch
+		mov cl, 2 ; Start Sector, 1-based
+		xor dh, dh
+		mov dl, [BootDrive]
+		int 0x13
+		jnc .readSuccess
+
+		.readFailured:
+			mov si, RdF
+			call dputs
+			cli
+			hlt
+			jmp $
+
+	.readSuccess:
+		mov si, RdOk
+		call dputs
 	
 	cli
 	mov al, 0x80
@@ -98,6 +128,9 @@ start:
 	mov si, IDis
 	call dputs
 
+%if 0
+	; fuck it!!!!!!!
+	; src/mbr.asm:251: error: TIMES value -27 is negative
 	.enableA20:
 		call .a20WaitIE
 		mov al, 0xd0
@@ -119,6 +152,12 @@ start:
 		call .a20WaitIE
 		mov al, 0xae
 		out 0x64, al
+%endif
+
+	.enableA20:
+		in al, 0x92
+		or al, 2
+		out 0x92, al
 
 	; A20 Loopback Test
 	.a20LoopbackTest:
@@ -150,6 +189,7 @@ start:
 	jmp 8:pm
 
 ; funciton
+%if 0
 	.a20WaitIE:
 		in al, 0x64
 		test al, 2
@@ -161,6 +201,7 @@ start:
 		test al, 1
 		jz .a20WaitOF
 		ret
+%endif
 
 bits 32
 pm:
@@ -178,48 +219,18 @@ pm:
 		and al, 0x7f
 		out 0x70, al
 
-	cli
-	hlt
-	jmp $
+	;cli
+	;hlt
+	;jmp $
+
+	mov ebx, pdputs
+	mov ecx, Dbg
+	mov edx, Line
+	jmp abs 0x7e00
 
 ; functions
 
 bits 16
-
-%macro PUT 4
-%1:
-	push %3
-	mov %3, Dbg
-	call %2
-	pop %3
-	call %2
-	mov %3, Line
-	call %2
-	ret
-
-%2:
-	lodsb
-	or al, al
-	jz .done
-	call %4
-	jmp %2
-.done:
-	ret
-
-%4:
-	push dx
-	push ax
-.wait_:
-	mov dx, COM+5
-	in al, dx
-	test al, 0x20
-	jz .wait_
-	mov dx, COM
-	pop ax
-	out dx, al
-	pop dx
-	ret
-%endmacro
 
 PUT dputs, puts, si, putc
 
@@ -235,14 +246,20 @@ GdtL	db "GdtL", 0 ; GDT Loaded
 A20S	db "A20S", 0 ; A20 Seted
 Opm		db "Opm",  0 ; On Protected Mode
 A20F    db "A20F", 0 ; A20 Failured
+RdOk    db "RdOk", 0 ; Read OK
+RdF     db "RdF", 0 ; Read Failured
 
 Gdt:
-	dq 0
-	dq 0x00CF9A000000FFFF
-	dq 0x00CF92000000FFFF
+	dq 0x0000000000000000 ; null descriptor
+	dq 0x00CF9A000000FFFF ; 32-bit ring0 0-based code
+	dq 0x00CF92000000FFFF ; 32-bit ring0 0-based data
+	dq 0x002098000000FFFF ; IA-32e ring0 0-based code
+	dq 0x002092000000FFFF ; IA-32e ring0 0-based data
 GdtDesc:
 	dw GdtDesc - Gdt - 1
 	dd Gdt
+
+BootDrive db 0xff
 
 times 510 - ($-$$) db 0
 dw 0xaa55
