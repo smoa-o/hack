@@ -8,7 +8,10 @@ QEMUFLAGS ?=
 DEFQEMUFLAGS ?= -boot a -D qemu.log \
 	-drive file=dsk/boot.img,format=raw,if=floppy,index=0
 
-all: reset compile write run
+all: ready run
+dev: ready run-dev
+
+ready: reset compile write
 
 # Reseting
 kill-vnc:

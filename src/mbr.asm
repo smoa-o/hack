@@ -98,6 +98,33 @@ start:
 	mov si, IDis
 	call dputs
 
+	.enableA20:
+		call .a20WaitIE
+		mov al, 0xd0
+		out 0x64, al
+		
+		call .a20WaitOF
+		in al, 0x60
+		push ax
+		
+		call .a20WaitIE
+		mov al, 0xd1
+		out 0x64, al
+		
+		call .a20WaitIE
+		pop ax
+		or al, 2
+		out 0x60, al
+		
+		call .a20WaitIE
+		mov al, 0xae
+		out 0x64, al
+
+	sti
+	
+	mov si, A20S
+	call dputs
+	
 	lgdt [GdtDesc]
 	mov si, GdtL
 	call dputs
@@ -107,6 +134,19 @@ start:
 	mov cr0, eax
 
 	jmp 8:pm
+
+; funciton
+	.a20WaitIE:
+		in al, 0x64
+		test al, 2
+		jnz .a20WaitIE
+		ret
+
+	.a20WaitOF:
+		in al, 0x64
+		test al, 1
+		jz .a20WaitOF
+		ret
 
 bits 32
 pm:
@@ -119,32 +159,6 @@ pm:
 	mov esi, Opm
 	call pdputs
 
-	.enableA20:
-		call .a20WaitIE
-		mov al, 0xd0
-		out 0x64, al
-		
-		call .a20WaitOF
-		in al, 0x60
-		push eax
-		
-		call .a20WaitIE
-		mov al, 0xd1
-		out 0x64, al
-		
-		call .a20WaitIE
-		pop eax
-		or al, 2
-		out 0x60, al
-		
-		call .a20WaitIE
-		mov al, 0xae
-		out 0x64, al
-
-	sti
-	mov esi, A20S
-	call pdputs
-
 	.enableNMI:
 		in al, 0x70
 		and al, 0x7f
@@ -155,17 +169,6 @@ pm:
 	jmp $
 
 ; functions
-	.a20WaitIE:
-		in al, 0x64
-		test al, 2
-		jnz .a20WaitIE
-		ret
-
-	.a20WaitOF:
-		in al, 0x64
-		test al, 1
-		jz .a20WaitOF
-		ret
 
 bits 16
 
