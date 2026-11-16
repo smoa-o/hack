@@ -33,7 +33,7 @@ reset: kill-vnc clean mkdirs crtdsk
 compile: $(BIN)/mbr.a.bin
 
 $(BIN)/%.a.bin: $(SRC)/%.asm
-	nasm $(NASMFLAGS) -f bin $< -o $@
+	nasm $(NASMFLAGS) -f bin $< -o $@ -l lst/$(notdir $<).lst
 
 # Writing
 write: wrdsk-boot
