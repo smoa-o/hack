@@ -15,8 +15,8 @@ start:
 	mov sp, 0x90000
 
 	mov [_Pdputs], ebx
-	mov [_Dbg], ecx
-	mov [_Line], edx
+	;mov [_Dbg], ecx
+	;mov [_Line], edx
 
 	mov esi, OLdr
 	call pdputs
@@ -65,35 +65,37 @@ start:
 
 PML4_ADDR equ 0x1000
 PDRT_ADDR equ 0x2000
-PDT_ADDR equ 0x3000
+PDT_ADDR  equ 0x3000
 
-PRESENT equ 1 << 0
-WRITABLE equ 1 << 1
-USER equ 1 << 2
-WRITE_THROUGH equ 1 << 3
-CACHE_DISABLE equ 1 << 4
-PS equ 1 << 7
+PRESENT equ 1
+WRITABLE equ 2
+USER equ 4
+PS equ 0x80
+NX equ 0x8000000000000000
 
-	.pagetableIntiailize:
-		; 0 ~ 0x1FFFFF => identity map, ring3 readable+executable
+	.pagetableInitialize:
 		mov edi, PML4_ADDR
 		mov cr3, edi
-
+		mov ecx, 1024 * 4
 		xor eax, eax
-		mov ecx, 3072
 		rep stosd
 
 		.pml4Initialize:
 			mov edi, PML4_ADDR
-			mov dword [edi], PDRT_ADDR | PRESENT | WRITABLE
+			
+			mov dword [edi], PDRT_ADDR | PRESENT | WRITABLE | USER
+			mov dword [edi + 0x1E0 * 8], PDRT_ADDR | PRESENT | WRITABLE ; 0x1E0
 
-		.pdrtInitialize:
+		.pdptInitialize:
 			mov edi, PDRT_ADDR
 			mov dword [edi], PDT_ADDR | PRESENT | WRITABLE
 
-		.pdtInitialize:
+		.pdInitialize:
 			mov edi, PDT_ADDR
-			mov dword [edi], PRESENT | WRITABLE | USER | PS
+			mov dword [edi], 0 | PRESENT | WRITABLE | PS
+			mov dword [edi + 8], 0x200000 | PRESENT | WRITABLE | PS | NX
+			mov dword [edi + 16], 0x400000 | PRESENT | WRITABLE | PS | USER
+			mov dword [edi + 24], 0x600000 | PRESENT | WRITABLE | PS | NX | USER
 
 		.setPae:
 			mov eax, cr4
@@ -190,5 +192,5 @@ Olm  db "Olm",  0 ; On Long Mode
 PgS  db "PgS",  0 ; PG Seted
 
 _Pdputs dd 0xffffffff
-_Dbg dq 0xffffffffffffffff
-_Line dq 0xffffffffffffffff
+;_Dbg dq 0xffffffffffffffff
+;_Line dq 0xffffffffffffffff
